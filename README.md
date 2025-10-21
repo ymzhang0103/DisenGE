@@ -1,4 +1,4 @@
-# IMOE
+# DisenGE
 Code for the paper "DisenGE: Learning Multiple Collaborative Subgraphs for Faithful Graph Neural Network Explanation"
 
 ## Overview
