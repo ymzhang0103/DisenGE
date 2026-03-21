@@ -27,6 +27,7 @@ from codes.Configures import model_args
 from codes.GNNmodels import GnnNets
 import os.path as osp
 from torch_geometric.utils import to_networkx
+from codes.explain.explanation_eval import ExplanationEvaluator
 
 def main(dataset_name, disen_k, train_topk):
 
@@ -398,6 +399,73 @@ def main(dataset_name, disen_k, train_topk):
         return auc, ndcg, allnode_related_preds_dict, allnode_mask_dict, exp_dict, pred_label_dict
 
 
+    def test_addRobustFidelity(iteration, test_indices, model, explainer, topk_arr, plot_flag=False):
+        preds = []
+        reals = []
+        ndcgs =[]
+        exp_dict={}
+        pred_label_dict={}
+        plotutils = PlotUtils(dataset_name=args.dataset)
+        metric = MaskoutMetric(model, args)
+        allnode_related_preds_dict = dict()
+        allnode_mask_dict = dict()
+        b = round(0.3 *dataset.data.edge_index.shape[1]/len(dataset.data.y))   #to calculate Nec
+        expl_evaluator = ExplanationEvaluator(model, alpha=0.4)   #to calculate robust fidelity
+        for graphid in test_indices:
+            sub_features = dataset.data.x[dataset.slices['x'][graphid].item():dataset.slices['x'][graphid+1].item(), :]
+            sub_edge_index = dataset.data.edge_index[:, dataset.slices['edge_index'][graphid].item():dataset.slices['edge_index'][graphid+1].item()]
+            data = Data(x=sub_features, edge_index=sub_edge_index, batch = torch.zeros(sub_features.shape[0], dtype=torch.int64, device=sub_features.device))
+            logits, prob, _, sub_embs = model(data)
+            label = dataset.data.y[graphid]
+            sub_adj = torch.sparse_coo_tensor(indices=sub_edge_index, values=torch.ones(sub_edge_index.shape[1]), size=(sub_features.shape[0], sub_features.shape[0])).to_dense().to(sub_edge_index.device)
+            #dise_gnn.eval()
+            #disen_features = dise_gnn(sub_features.to(args.device), sub_edge_index.to(args.device))
+            explainer.eval()
+            #masked_pred = explainer((sub_features, disen_features, sub_adj, 1.0, label))
+            masked_pred, _, _ = explainer((sub_features, sub_adj, sub_embs, 1.0, label))
+            #insert = 20
+            #acc(sub_adj, insert)
+            if args.dataset == "Mutagenicity" or args.dataset == "Mutagenicity_full":
+                sub_edge_label = dataset.data.edge_label[dataset.slices['edge_label'][graphid].item() : dataset.slices['edge_label'][graphid+1].item()]
+                data = Data(x=sub_features, edge_index=sub_edge_index, batch = torch.zeros(sub_features.shape[0], dtype=torch.int64, device=sub_features.device), edge_label=sub_edge_label)
+                sub_edge_gt = dataset.data.edge_label_gt[dataset.slices['edge_label_gt'][graphid].item() : dataset.slices['edge_label_gt'][graphid+1].item()]
+                sub_edge_gt_matrix= coo_matrix((sub_edge_gt,(sub_edge_index[0],sub_edge_index[1])),shape=(sub_features.shape[0],sub_features.shape[0]))
+                auc_onegraph, real, pred = acc(sub_adj, sub_edge_gt_matrix)
+                reals.extend(real)
+                preds.extend(pred)
+            origin_pred = prob.squeeze()
+            ndcg_onegraph, r_mask, _, _ = rho_ndcg(origin_pred, masked_pred, len(masked_pred))
+            ndcgs.append(ndcg_onegraph)
+
+            mask = explainer.masked_adj
+            pred_mask, related_preds_dict = metric.metric_del_edges_GC_addRobustFidelity(topk_arr, sub_features, mask, sub_edge_index, origin_pred, masked_pred, label, b, expl_evaluator)
+            allnode_related_preds_dict[graphid] = related_preds_dict
+            allnode_mask_dict[graphid] = pred_mask
+            
+            exp_dict[graphid] = mask.detach()
+            origin_label = torch.argmax(origin_pred)
+            pred_label_dict[graphid]=origin_label
+
+            if plot_flag:
+                edge_mask_max = mask[sub_edge_index[0], sub_edge_index[1]]
+                plot_one(iteration, data, sub_edge_index, edge_mask_max, graphid, None)
+                disen_mask =  explainer.disen_M
+                for i in range(disen_mask.shape[0]):
+                    edge_mask = disen_mask[i]
+                    plot_one(iteration, data, sub_edge_index, edge_mask, graphid, i)
+                    
+        if args.dataset == "Mutagenicity" or args.dataset == "Mutagenicity_full":
+            if len(reals) != 0:
+                auc = roc_auc_score(reals,preds)
+            else:
+                auc = -1
+        else:
+            auc = 0
+        ndcg = np.mean(ndcgs)
+
+        return auc, ndcg, allnode_related_preds_dict, allnode_mask_dict, exp_dict, pred_label_dict
+
+
     def train(iteration, model):
         tik = time.time()
         epochs = args.eepochs
@@ -606,6 +674,10 @@ def main(dataset_name, disen_k, train_topk):
     fidelityminus_complete_nodes_arr = []
     finalfidelity_complete_nodes_arr = []
     sparsity_nodes_arr = []
+    nec_del_fidelity_complete_arr = []
+    alpha_fid_delta_arr = []
+    alpha_fid_plus_arr = []
+    alpha_fid_minus_arr = []
     for iteration in range(1):
         print("Starting iteration: {}".format(iteration))
         args.device = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -655,7 +727,7 @@ def main(dataset_name, disen_k, train_topk):
 
         tik = time.time()
         test_fixmask(model)
-        auc, ndcg, allnode_related_preds_dict, allnode_mask_dict, exp_dict, pred_label_dict = test(iteration, test_indices, model, explainer, args.topk_arr, plot_flag=args.plot_flag)
+        auc, ndcg, allnode_related_preds_dict, allnode_mask_dict, exp_dict, pred_label_dict = test_addRobustFidelity(iteration, test_indices, model, explainer, args.topk_arr, plot_flag=args.plot_flag)
         auc_all.append(auc)
         ndcg_all.append(ndcg)
 
@@ -705,6 +777,10 @@ def main(dataset_name, disen_k, train_topk):
         one_fidelityminus_complete_nodes_arr = []
         one_finalfidelity_complete_nodes_arr = []
         one_sparsity_nodes_arr = []
+        one_nec_del_fidelity_complete_arr = []
+        one_alpha_fid_delta_arr = []
+        one_alpha_fid_plus_arr = []
+        one_alpha_fid_minus_arr = []
         for top_k in args.topk_arr:
             print("top_k: ", top_k)
             x_collector = XCollector()
@@ -746,6 +822,10 @@ def main(dataset_name, disen_k, train_topk):
             one_fidelityminus_complete_nodes_arr.append(round(x_collector.fidelityminus_complete_nodes, 4))
             one_finalfidelity_complete_nodes_arr.append(round(x_collector.fidelity_complete_nodes - x_collector.fidelityminus_complete_nodes, 4))
             one_sparsity_nodes_arr.append(round(x_collector.sparsity_nodes, 4))
+            one_nec_del_fidelity_complete_arr.append(round(x_collector.nec_del_fidelity_complete, 4))
+            one_alpha_fid_delta_arr.append(round(x_collector.alpha_fidelity_delta, 4))
+            one_alpha_fid_plus_arr.append(round(x_collector.alpha_fidelity_plus, 4))
+            one_alpha_fid_minus_arr.append(round(x_collector.alpha_fidelity_minus, 4))
 
         print("one_simula_arr =", one_simula_arr)
         print("one_simula_origin_arr =", one_simula_origin_arr)
@@ -775,6 +855,10 @@ def main(dataset_name, disen_k, train_topk):
         print("one_fidelityminus_complete_nodes_arr=", one_fidelityminus_complete_nodes_arr)
         print("one_finalfidelity_complete_nodes_arr=", one_finalfidelity_complete_nodes_arr)
         print("one_sparsity_nodes_arr =", one_sparsity_nodes_arr)
+        print("one_nec_del_fidelity_complete_arr = ", one_nec_del_fidelity_complete_arr)
+        print("one_alpha_fid_delta_arr = ", one_alpha_fid_delta_arr)
+        print("one_alpha_fid_plus_arr = ", one_alpha_fid_plus_arr)
+        print("one_alpha_fid_minus_arr = ", one_alpha_fid_minus_arr)
 
         tok = time.time()
         f.write("one_auc={}".format(auc) + "\n")
@@ -809,6 +893,10 @@ def main(dataset_name, disen_k, train_topk):
         f.write("one_fidelityminus_complete_nodes={}".format(one_fidelityminus_complete_nodes_arr)+"\n")
         f.write("one_finalfidelity_complete_nodes={}".format(one_finalfidelity_complete_nodes_arr)+"\n")
         f.write("one_sparsity_nodes={}".format(one_sparsity_nodes_arr) + "\n")
+        f.write("one_nec_del_fidelity_complete_arr={}".format(one_nec_del_fidelity_complete_arr) + "\n")
+        f.write("one_alpha_fid_delta_arr = {}".format(one_alpha_fid_delta_arr) + "\n")
+        f.write("one_alpha_fid_plus_arr = {}".format(one_alpha_fid_plus_arr) + "\n")
+        f.write("one_alpha_fid_minus_arr = {}".format(one_alpha_fid_minus_arr) + "\n")
         f.write("test time,{}".format(tok-tik))
         f.close()
 
@@ -840,6 +928,10 @@ def main(dataset_name, disen_k, train_topk):
         fidelityminus_complete_nodes_arr.append(one_fidelityminus_complete_nodes_arr)
         finalfidelity_complete_nodes_arr.append(one_finalfidelity_complete_nodes_arr)
         sparsity_nodes_arr.append(one_sparsity_nodes_arr)
+        nec_del_fidelity_complete_arr.append(one_nec_del_fidelity_complete_arr)
+        alpha_fid_delta_arr.append(one_alpha_fid_delta_arr)
+        alpha_fid_plus_arr.append(one_alpha_fid_plus_arr)
+        alpha_fid_minus_arr.append(one_alpha_fid_minus_arr)
 
     print("args.dataset", args.dataset)
     print("Disen_auc_all = ", auc_all)
@@ -872,6 +964,10 @@ def main(dataset_name, disen_k, train_topk):
     print("Disen_fidelityminus_complete_nodes_arr=", fidelityminus_complete_nodes_arr)
     print("Disen_finalfidelity_complete_nodes_arr", finalfidelity_complete_nodes_arr)
     print("Disen_sparsity_nodes_arr =", sparsity_nodes_arr)
+    print("Disen_nec_del_fidelity_complete_arr =", nec_del_fidelity_complete_arr)
+    print("Disen_alpha_fid_delta_arr = ", alpha_fid_delta_arr)
+    print("Disen_alpha_fid_plus_arr = ", alpha_fid_plus_arr)
+    print("Disen_alpha_fid_minus_arr = ", alpha_fid_minus_arr)
 
     f_mean.write("Disen_auc_all={}".format(auc_all) + "\n")
     f_mean.write("Disen_ndcg_all={}".format(ndcg_all) + "\n")
@@ -911,6 +1007,10 @@ def main(dataset_name, disen_k, train_topk):
     f_mean.write("Disen_fidelityminus_complete_nodes_arr = {}".format(fidelityminus_complete_nodes_arr)+"\n")
     f_mean.write("Disen_finalfidelity_complete_nodes_arr = {}".format(finalfidelity_complete_nodes_arr)+"\n")
     f_mean.write("Disen_sparsity_nodes_arr={}".format(sparsity_nodes_arr) + "\n")
+    f_mean.write("Disen_nec_del_fidelity_complete_arr={}".format(nec_del_fidelity_complete_arr) + "\n")
+    f_mean.write("Disen_alpha_fid_delta_arr = {}".format(alpha_fid_delta_arr) + "\n")
+    f_mean.write("Disen_alpha_fid_plus_arr = {}".format(alpha_fid_plus_arr) + "\n")
+    f_mean.write("Disen_alpha_fid_minus_arr = {}".format(alpha_fid_minus_arr) + "\n")
 
     simula_mean = np.average(np.array(simula_arr), axis=0)
     simula_origin_mean = np.average(np.array(simula_origin_arr), axis=0)
@@ -940,6 +1040,10 @@ def main(dataset_name, disen_k, train_topk):
     fidelityminus_complete_nodes_mean = np.average(np.array(fidelityminus_complete_nodes_arr),axis=0)
     finalfidelity_complete_nodes_mean = np.average(np.array(finalfidelity_complete_nodes_arr), axis=0)
     sparsity_nodes_mean = np.average(np.array(sparsity_nodes_arr),axis=0)
+    nec_del_fidelity_complete_mean = np.average(np.array(nec_del_fidelity_complete_arr),axis=0)
+    alpha_fid_delta_mean =  np.average(np.array(alpha_fid_delta_arr), axis=0)
+    alpha_fid_plus_mean = np.average(np.array(alpha_fid_plus_arr), axis=0)
+    alpha_fid_minus_mean = np.average(np.array(alpha_fid_minus_arr), axis=0)
 
     print("Disen_auc_mean =", np.mean(auc_all))
     print("Disen_ndcg_mean =", np.mean(ndcg_all))
@@ -971,6 +1075,10 @@ def main(dataset_name, disen_k, train_topk):
     print("Disen_fidelityminus_complete_nodes_mean =", list(fidelityminus_complete_nodes_mean))
     print("Disen_finalfidelity_complete_nodes_mean =", list(finalfidelity_complete_nodes_mean))
     print("Disen_sparsity_nodes_mean =", list(sparsity_nodes_mean))
+    print("Disen_nec_del_fidelity_complete_mean = ", list(nec_del_fidelity_complete_mean))
+    print("Disen_alpha_fid_delta_mean = ", list(alpha_fid_delta_mean))
+    print("Disen_alpha_fid_plus_mean = ", list(alpha_fid_plus_mean))
+    print("Disen_alpha_fid_minus_mean = ", list(alpha_fid_minus_mean))
 
     f_mean.write("Disen_auc_mean = {}".format(np.mean(auc_all))+ "\n")
     f_mean.write("Disen_ndcg_mean = {}".format(np.mean(ndcg_all))+ "\n")
@@ -1010,6 +1118,10 @@ def main(dataset_name, disen_k, train_topk):
     f_mean.write("Disen_fidelityminus_complete_nodes_mean = {}".format(list(fidelityminus_complete_nodes_mean))+"\n")
     f_mean.write("Disen_finalfidelity_complete_nodes_mean = {}".format(list(finalfidelity_complete_nodes_mean))+"\n")
     f_mean.write("Disen_sparsity_nodes_mean = {}".format(list(sparsity_nodes_mean))+ "\n")
+    f_mean.write("Disen_nec_del_fidelity_complete_mean = {}".format(list(nec_del_fidelity_complete_mean))+ "\n")
+    f_mean.write("Disen_alpha_fid_delta_mean = {}".format(list(alpha_fid_delta_mean)) + "\n")
+    f_mean.write("Disen_alpha_fid_plus_mean = {}".format(list(alpha_fid_plus_mean)) + "\n")
+    f_mean.write("Disen_alpha_fid_minus_mean = {}".format(list(alpha_fid_minus_mean)) + "\n")
     f_mean.close()
 
 
