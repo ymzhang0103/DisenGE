@@ -574,23 +574,29 @@ class XCollector_bak(object):
 class XCollector(object):
     def __init__(self, sparsity=None):
         self.__related_preds, self.__targets = {'zero': [], 'origin': [], 'masked': [], 'maskimp': [], 'masknotimp':[], 'delimp':[], 'retainimp':[], 'sparsity_edges': [], 'maskimp_nodes':[], 'retainimp_nodes':[], 'sparsity_nodes':[], \
-       'origin_l': [], 'masked_l': [], 'maskimp_l': [], 'masknotimp_l':[], 'delimp_l':[], 'retainimp_l':[], 'maskimp_nodes_l':[], 'retainimp_nodes_l':[], 'origin_ol': [], 'masked_ol': [], 'maskimp_ol': [], 'masknotimp_ol':[], 'delimp_ol':[], 'retainimp_ol':[], 'maskimp_nodes_ol':[], 'retainimp_nodes_ol':[], 'label': [], 'origin_label': [], 'attack_status':[]}, []
+       'origin_l': [], 'masked_l': [], 'maskimp_l': [], 'masknotimp_l':[], 'delimp_l':[], 'retainimp_l':[], 'maskimp_nodes_l':[], 'retainimp_nodes_l':[], 'origin_ol': [], 'masked_ol': [], 'maskimp_ol': [], 'masknotimp_ol':[], 'delimp_ol':[], 'retainimp_ol':[], 'maskimp_nodes_ol':[], 'retainimp_nodes_ol':[], 'label': [], 'origin_label': [], 'attack_status':[], \
+        'nec_delimp':[], 'nec_delimp_l':[], 'nec_delimp_ol':[], 'alpha_fid_delta':[], 'alpha_fid_plus':[], 'alpha_fid_minus':[]}, []
         self.masks: Union[List, List[List[Tensor]]] = []
 
         self.__sparsity_edges = sparsity
         self.__simula, self.__simula_origin, self.__simula_complete, self.__fidelity, self.__fidelity_origin, self.__fidelity_complete, self.__fidelityminus, self.__fidelityminus_origin, self.__fidelityminus_complete, self.__del_fidelity, self.__del_fidelity_origin, self.__del_fidelity_complete, self.__del_fidelityminus, self.__del_fidelityminus_origin, self.__del_fidelityminus_complete, self.__fidelity_nodes, self.__fidelity_origin_nodes, self.__fidelity_complete_nodes, self.__fidelityminus_nodes, self.__fidelityminus_origin_nodes, self.__fidelityminus_complete_nodes, self.__sparsity_nodes = None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None
         self.__attack_acc = None
+        self.__nec_del_fidelity_complete = None
+        self.__alpha_fidelity_delta, self.__alpha_fidelity_plus, self.__alpha_fidelity_minus = None,None,None
     @property
     def targets(self) -> list:
         return self.__targets
 
     def new(self):
         self.__related_preds, self.__targets = {'zero': [], 'origin': [], 'masked': [], 'maskimp': [], 'masknotimp':[], 'delimp':[], 'retainimp':[], 'sparsity_edges': [], 'maskimp_nodes':[], 'retainimp_nodes':[], 'sparsity_nodes':[], \
-       'origin_l': [], 'masked_l': [], 'maskimp_l': [], 'masknotimp_l':[], 'delimp_l':[], 'retainimp_l':[], 'maskimp_nodes_l':[], 'retainimp_nodes_l':[], 'origin_ol': [], 'masked_ol': [], 'maskimp_ol': [], 'masknotimp_ol':[], 'delimp_ol':[], 'retainimp_ol':[], 'maskimp_nodes_ol':[], 'retainimp_nodes_ol':[], 'label': [], 'origin_label': [], 'attack_status':[]}, []
+       'origin_l': [], 'masked_l': [], 'maskimp_l': [], 'masknotimp_l':[], 'delimp_l':[], 'retainimp_l':[], 'maskimp_nodes_l':[], 'retainimp_nodes_l':[], 'origin_ol': [], 'masked_ol': [], 'maskimp_ol': [], 'masknotimp_ol':[], 'delimp_ol':[], 'retainimp_ol':[], 'maskimp_nodes_ol':[], 'retainimp_nodes_ol':[], 'label': [], 'origin_label': [], 'attack_status':[],\
+        'nec_delimp':[], 'nec_delimp_l':[], 'nec_delimp_ol':[], 'alpha_fid_delta':[], 'alpha_fid_plus':[], 'alpha_fid_minus':[]}, []
         self.masks: Union[List, List[List[Tensor]]] = []
 
         self.__simula, self.__simula_origin, self.__simula_complete, self.__fidelity, self.__fidelity_origin, self.__fidelity_complete, self.__fidelityminus, self.__fidelityminus_origin, self.__fidelityminus_complete, self.__del_fidelity, self.__del_fidelity_origin, self.__del_fidelity_complete, self.__del_fidelityminus, self.__del_fidelityminus_origin, self.__del_fidelityminus_complete, self.__fidelity_nodes, self.__fidelity_origin_nodes, self.__fidelity_complete_nodes, self.__fidelityminus_nodes, self.__fidelityminus_origin_nodes, self.__fidelityminus_complete_nodes, self.__sparsity_nodes = None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None
         self.__attack_acc = None
+        self.__nec_del_fidelity_complete = None
+        self.__alpha_fidelity_delta, self.__alpha_fidelity_plus, self.__alpha_fidelity_minus = None,None,None
 
     def collect_data(self,
                      masks: List[Tensor],
@@ -615,6 +621,53 @@ class XCollector(object):
             self.__targets.append(label)
             self.masks.append(masks)
 
+    @property
+    def nec_del_fidelity_complete(self):
+        if self.__nec_del_fidelity_complete:
+            return self.__nec_del_fidelity_complete
+        elif None in self.__related_preds['nec_delimp'] or None in self.__related_preds['origin']:
+            return None
+        else:
+            nec_delimp_preds, origin_preds = self.__related_preds['nec_delimp'], self.__related_preds['origin']
+            self.__nec_del_fidelity_complete = fidelity_complete(origin_preds, nec_delimp_preds)
+            return self.__nec_del_fidelity_complete
+       
+    @property
+    def alpha_fidelity_delta(self):
+        if self.__alpha_fidelity_delta:
+            return self.__alpha_fidelity_delta
+        elif None in self.__related_preds['alpha_fid_delta']:
+            return None
+        else:
+            fid_arr = np.array(self.__related_preds['alpha_fid_delta'])
+            self.__alpha_fidelity_delta = fid_arr.mean().item()
+            #delta_fid_std = delta_fid_arr.std().item()
+            return self.__alpha_fidelity_delta
+    
+    @property
+    def alpha_fidelity_plus(self):
+        if self.__alpha_fidelity_plus:
+            return self.__alpha_fidelity_plus
+        elif None in self.__related_preds['alpha_fid_plus']:
+            return None
+        else:
+            fid_arr = np.array(self.__related_preds['alpha_fid_plus'])
+            self.__alpha_fidelity_plus = fid_arr.mean().item()
+            #delta_fid_std = delta_fid_arr.std().item()
+            return self.__alpha_fidelity_plus
+        
+    @property
+    def alpha_fidelity_minus(self):
+        if self.__alpha_fidelity_minus:
+            return self.__alpha_fidelity_minus
+        elif None in self.__related_preds['alpha_fid_minus']:
+            return None
+        else:
+            fid_arr = np.array(self.__related_preds['alpha_fid_minus'])
+            self.__alpha_fidelity_minus = fid_arr.mean().item()
+            #delta_fid_std = delta_fid_arr.std().item()
+            return self.__alpha_fidelity_minus
+        
     @property
     def attack_acc(self):
         if self.__attack_acc:
@@ -1128,6 +1181,131 @@ class MaskoutMetric:
         pred_mask = [edge_mask.cpu().detach().numpy()]
         return pred_mask, related_preds_dict
 
+
+
+    def metric_del_edges_GC_addRobustFidelity(self, topk_arr, sub_feature, mask, sub_edge_index, origin_pred, masked_pred, label, b, expl_evaluator):
+        origin_label = torch.argmax(origin_pred)
+        edge_mask = mask[sub_edge_index[0], sub_edge_index[1]]
+
+        x = sub_feature.to(self.prog_args.device)
+        exp = Data(x=x, edge_index=sub_edge_index, edge_mask=edge_mask, y=label.unsqueeze(0), batch = torch.zeros(x.shape[0], dtype=torch.int64, device=x.device))
+
+        related_preds_dict = dict()
+        for top_k in topk_arr:
+            select_k = round(top_k/100 * len(sub_edge_index[0]))
+
+            selected_impedges_idx = edge_mask.reshape(-1).sort(descending=True).indices[:select_k]#按比例选择top_k%的重要边
+            other_notimpedges_idx = edge_mask.reshape(-1).sort(descending=True).indices[select_k:]        #按比例选择top_k%的重要边
+            sparsity_edges = 1- len(selected_impedges_idx) / sub_edge_index.shape[1]
+
+            maskimp_edge_mask = torch.ones(len(edge_mask)).to(self.prog_args.device) 
+            maskimp_edge_mask[selected_impedges_idx] = 1-edge_mask[selected_impedges_idx]#重要的边，权重置为1-mask
+            self.__clear_masks__()
+            self.__set_masks__(x, sub_edge_index, maskimp_edge_mask)    
+            data = Data(x=x, edge_index=sub_edge_index, batch = torch.zeros(x.shape[0], dtype=torch.int64, device=x.device))
+            self.model.eval()
+            _, maskimp_preds, _, embed = self.model(data)
+            maskimp_pred = maskimp_preds.squeeze()
+            self.__clear_masks__()
+
+            masknotimp_edge_mask  = torch.ones(len(edge_mask), dtype=torch.float32).to(self.prog_args.device) 
+            masknotimp_edge_mask[other_notimpedges_idx] = edge_mask[other_notimpedges_idx]      #除了重要的top_k%之外的其他边置为mask
+            self.__clear_masks__()
+            self.__set_masks__(x, sub_edge_index, masknotimp_edge_mask)    
+            data = Data(x=x, edge_index=sub_edge_index, batch = torch.zeros(x.shape[0], dtype=torch.int64, device=x.device))
+            self.model.eval()
+            _, masknotimp_preds, _, embed = self.model(data)
+            masknotimp_pred = masknotimp_preds.squeeze()
+            self.__clear_masks__()
+
+            delimp_edge_mask = torch.ones(len(edge_mask)).to(self.prog_args.device) 
+            delimp_edge_mask[selected_impedges_idx] = 0.0    #remove important edges
+            self.__clear_masks__()
+            self.__set_masks__(x, sub_edge_index, delimp_edge_mask)    
+            data = Data(x=x, edge_index=sub_edge_index, batch = torch.zeros(x.shape[0], dtype=torch.int64, device=x.device))
+            self.model.eval()
+            _, delimp_preds, _, embed = self.model(data)
+            delimp_pred = delimp_preds.squeeze()
+            self.__clear_masks__()
+
+            retainimp_edge_mask  = torch.ones(len(edge_mask), dtype=torch.float32).to(self.prog_args.device) 
+            retainimp_edge_mask[other_notimpedges_idx] = 0.0   #remove not important edges
+            self.__clear_masks__()
+            self.__set_masks__(x, sub_edge_index, retainimp_edge_mask)    
+            data = Data(x=x, edge_index=sub_edge_index, batch = torch.zeros(x.shape[0], dtype=torch.int64, device=x.device))
+            self.model.eval()
+            _, retainimp_preds, _, embed = self.model(data)
+            retainimp_pred = retainimp_preds.squeeze()
+            self.__clear_masks__()
+
+            #delete nodes
+            selected_nodes = self.calculate_selected_nodes(sub_edge_index, edge_mask, select_k)
+            maskout_nodes_list = [node for node in range(sub_feature.shape[0]) if node not in selected_nodes]
+            value_func = self.GnnNets_GC2value_func_new(self.model)
+            maskimp_pred_nodes = self.gnn_prob(maskout_nodes_list, data, value_func, subgraph_building_method='zero_filling')
+            retainimp_pred_nodes = self.gnn_prob(selected_nodes, data, value_func, subgraph_building_method='zero_filling')
+            sparsity_nodes = 1 - len(selected_nodes) / sub_feature.shape[0]
+
+            #attack_acc
+            #attacked_edge_index = attack_graph(sub_edge_index, edge_mask, top_k, self.prog_args.perturb_edge_num)
+            '''attacked_edge_index = generate_graph(sub_edge_index.cpu(), selected_impedges_idx, Generator, sub_feature)
+            data = Data(x=x, edge_index=attacked_edge_index, batch = torch.zeros(x.shape[0], dtype=torch.int64, device=x.device))
+            attack_logits, attack_prob, attack_node_embs = self.model(data)
+            if origin_label == attack_prob.argmax():
+                attack_status = 1
+            else:
+                attack_status = 0'''
+
+            sparsity_infos = {}
+            sparsity_infos['max_nodes'] = (sub_edge_index[:, selected_impedges_idx]
+                                        .flatten()
+                                        .unique()
+                                        .size(0))
+            #expl_evaluator.collect(exp, 'fid', **sparsity_infos)
+            alpha_fid_delta, alpha_fid_plus, alpha_fid_minus = expl_evaluator.alpha_func(exp, **sparsity_infos)
+            ori_fid_delta, ori_fid_plus, ori_fid_minus = expl_evaluator.ori_func(exp, **sparsity_infos)
+
+            related_preds = [{
+                'label': label,
+                'origin_label': origin_label,
+                'origin': origin_pred,
+                'origin_l': origin_pred[label],
+                'origin_ol': origin_pred[origin_label],
+                'masked': masked_pred,
+                'masked_l': masked_pred[label],
+                'masked_ol': masked_pred[origin_label],
+                'maskimp': maskimp_pred,
+                'maskimp_l': maskimp_pred[label],
+                'maskimp_ol': maskimp_pred[origin_label],
+                'masknotimp': masknotimp_pred,
+                'masknotimp_l': masknotimp_pred[label],
+                'masknotimp_ol': masknotimp_pred[origin_label],
+                'delimp':delimp_pred,
+                'delimp_l':delimp_pred[label],
+                'delimp_ol':delimp_pred[origin_label],
+                'retainimp':retainimp_pred,
+                'retainimp_l':retainimp_pred[label],
+                'retainimp_ol':retainimp_pred[origin_label],
+                'sparsity_edges': sparsity_edges,
+                'maskimp_nodes': maskimp_pred_nodes,
+                'maskimp_nodes_l':maskimp_pred_nodes[label],
+                'maskimp_nodes_ol':maskimp_pred_nodes[origin_label],
+                'retainimp_nodes': retainimp_pred_nodes,
+                'retainimp_nodes_l':retainimp_pred_nodes[label],
+                'retainimp_nodes_ol':retainimp_pred_nodes[origin_label],
+                'sparsity_nodes': sparsity_nodes,
+                'alpha_fid_delta': alpha_fid_delta,
+                'alpha_fid_plus': alpha_fid_plus,
+                'alpha_fid_minus': alpha_fid_minus,
+                'ori_fid_delta': ori_fid_delta,
+                'ori_fid_plus': ori_fid_plus,
+                'ori_fid_minus': ori_fid_minus,
+                #'attack_status': attack_status,
+            }]
+            related_preds_dict[top_k] = related_preds
+
+        pred_mask = [edge_mask.cpu().detach().numpy()]
+        return pred_mask, related_preds_dict
 
 
     def metric_del_edges_GC_distribution(self, topk_arr, sub_feature, mask, sub_edge_index, origin_pred, masked_pred, label, Generator):
