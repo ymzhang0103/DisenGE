@@ -20,3 +20,10 @@ The project contains the following folders and files.
 ## To run
 - Run train_GNNNets.py to train the GNNs to be explained. Change parameter **dataset** per demand.
 - Run main.py to explain the pre-trained GNNs. Change **parameters** per demand.
+
+## Quantitative Performance Comparison on Alkane Carbonyl Datasets
+<img width="20%" src ="./results/Alkane_Carbonyl-f.pdf"/>
+<img width="20%" src ="./results/Alkane_Carbonyl-f+.pdf"/>
+<img width="20%" src ="./results/Alkane_Carbonyl-f-.pdf"/>
+<img width="20%" src ="./results/nec-delEdge-Alkane_Carbonyl-f+.pdf"/>
+<img width="20%" src ="./results/robust-Alkane_Carbonyl-fvaluef.pdf"/>
