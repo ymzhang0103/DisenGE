@@ -22,8 +22,8 @@ The project contains the following folders and files.
 - Run main.py to explain the pre-trained GNNs. Change **parameters** per demand.
 
 ## Quantitative Performance Comparison on Alkane Carbonyl Datasets
-<img width="20%" src ="./results/Alkane_Carbonyl-f.pdf"/>
-<img width="20%" src ="./results/Alkane_Carbonyl-f+.pdf"/>
-<img width="20%" src ="./results/Alkane_Carbonyl-f-.pdf"/>
-<img width="20%" src ="./results/nec-delEdge-Alkane_Carbonyl-f+.pdf"/>
-<img width="20%" src ="./results/robust-Alkane_Carbonyl-fvaluef.pdf"/>
+<img width="20%" src ="./results/Alkane_Carbonyl-f.png"/>
+<img width="20%" src ="./results/Alkane_Carbonyl-f+.png"/>
+<img width="20%" src ="./results/Alkane_Carbonyl-f-.png"/>
+<img width="20%" src ="./results/nec-delEdge-Alkane_Carbonyl-f+.png"/>
+<img width="20%" src ="./results/robust-Alkane_Carbonyl-fvaluef.png"/>
