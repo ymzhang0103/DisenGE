@@ -44,7 +44,7 @@ The below table reports the runtime (in seconds) of various post-hoc GNN explain
 
 ### Runtime comparison of different explainers on various datasets (in seconds)
 
-| Explainer | Mutagenicity | | NCI1 | | PROTEINS | | BA-3Motifs | | Alkane Carbonyl | |
+| Explainer | Mutagenicity | NCI1  | PROTEINS  | BA-3Motifs | Alkane Carbonyl  |
 | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 | | **Train** | **Test** | **Train** | **Test** | **Train** | **Test** | **Train** | **Test** | **Train** | **Test** |
 | **GNNExplainer** | -- | 8594.94 | -- | 13928.71 | -- | 3990.90 | -- | 15575.15 | -- | 4072.93 |
