@@ -40,7 +40,7 @@ Specifically, DisenGE's rapid early ascent on $Fidelity+^{prob}@k$ and $Nec$ dem
 ### Running cost and hardware
 All experiments are conducted on a single NVIDIA RTX 3090 GPU (24 GB memory). 
 
-### Runtime comparison of different explainers on various datasets (in seconds)
+##### Runtime comparison of different explainers on various datasets (in seconds)
 
 | Explainer | Mutagenicity<br>(Train / Test) | NCI1<br>(Train / Test) | PROTEINS<br>(Train / Test) | BA-3Motifs<br>(Train / Test) | Alkane Carbonyl<br>(Train / Test) |
 | :---: | :---: | :---: | :---: | :---: | :---: |
