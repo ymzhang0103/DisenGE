@@ -21,7 +21,8 @@ The project contains the following folders and files.
 - Run train_GNNNets.py to train the GNNs to be explained. Change parameter **dataset** per demand.
 - Run main.py to explain the pre-trained GNNs. Change **parameters** per demand.
 
-## Quantitative Performance Comparison on Alkane Carbonyl Datasets
+## Additional Results
+### Quantitative Performance Comparison on Alkane Carbonyl Datasets
 We conducted additional experiments on the Alkane Carbonyl dataset. The experimental results are presented below. 
 
 The target GNN consists of three GCN layers, each with a hidden dimension of 20. Node representations are $L_2$-normalized at each layer and activated by ReLU. The graph-level representation is obtained by concatenating max-pooling and mean-pooling readouts. The test accuracy is 0.982.
@@ -35,3 +36,44 @@ Specifically, DisenGE's rapid early ascent on $Fidelity+^{prob}@k$ and $Nec$ dem
 [1] H. Yuan, H. Yu, S. Gui, S. Ji, Explainability in graph neural networks: A taxonomic survey, IEEE Transactions on Pattern Analysis and Machine Intelligence 45 (5) (2023) 5782–5799.
 
 [2] Longa A, Azzolin S, Santin G, et al., Longa, A, Azzolin, S, Santin, G, Cencetti, G, Lio, P, Lepri, B, Passerini, A, Explaining the explainers in graph neural networks: a comparative study, ACM Computing Surveys 57.5 (2025): 1-37.
+
+### Running cost and hardware
+All experiments are conducted on a single NVIDIA RTX 3090 GPU (24 GB memory). 
+
+The below table reports the runtime (in seconds) of various post-hoc GNN explainers on five datasets. Non-parameterized explainers (GNNExplainer, GNN-MOExp, and CF$^2$) optimize a separate explanation for each graph at test time, leading to very high inference costs. Parameterized explainers (PGExplainer, Gem, MixupE, RDPE, and DisenGE) train a shared model that can be reused across graphs, resulting in much faster inference. While DisenGE requires more training time due to its multi-channel architecture, its inference speed matches other parameterized methods and vastly outperforms non-parameterized ones. Notably, on Mutagenicity, DisenGE takes only 133.10\,s for inference, the fastest among all methods, compared to 160.72\,s for RDPE, 187.97\,s for MixupE, and 8594.94\,s for GNNExplainer. Since training is a one-time cost while inference is performed repeatedly, this trade-off is acceptable in practice.
+
+\begin{table*}[!htpb]
+    \centering
+    %\renewcommand{\arraystretch}{1.25}
+    \caption{Runtime comparison of different explainers on various datasets.}
+    \label{tab: runtime}
+    \begin{tabular}{ccccccc}
+        \toprule
+        Explainer & & Mutagenicity & NCI1 & PROTEINS & BA-3Motifs & Alkane Carbonyl\\
+        \multirow{2}{*}{GNNExplainer} & Train & -- & -- & -- & -- & -- \\
+         & Test &  8594.94 &   13928.71 &  3990.90 &  15575.15  &  4072.93 \\
+        \hline
+		  \multirow{2}{*}{PGExplainer} & Train & 740.83 & 1214.23 & 221.33 & 719.81 & 192.80 \\
+         & Test &  278.11 & 443.72  & 66.20  & 203.17 & 57.66\\
+        \hline
+		\multirow{2}{*}{Gem} & Train &  533.40   & 910.67  & 152.72 & 503.87 & 133.03  \\
+         & Test & 200.24  & 332.79  &  45.68  &  142.22  &  39.81 \\
+        \hline
+		\multirow{2}{*}{GNN-MOExp} & Train & -- & -- & -- & -- & -- \\
+         & Test &  7252.81 &   11408.50  &  3445.80 &  14279.58  &  3376.73 \\
+        \hline
+        \multirow{2}{*}{ CF$^2$} & Train & -- & -- & -- & -- & -- \\
+         & Test &  9595.87  &  15274.39  &  1429.38  &  17531.11  &   4528.89\\
+        \hline
+        \multirow{2}{*}{MixupE} & Train & 1513.62 &  1970.07  & 780.06 & 2518.15 & 679.49   \\
+         & Test & 187.97 &  181.51 &  82.74 & 268.30 &  72.09\\
+        \hline
+		\multirow{2}{*}{RDPE} & Train & 4561.34 & 10244.37 & 3686.81 & 14499.62 & 12426.78 \\
+         & Test & 160.72  & 304.99  & 82.77  & 262.78 &  457.24 \\
+        \hline
+		\multirow{2}{*}{DisenGE} & Train & 9651.50 & 22816.38 & 6815.21 & 17248.27 & 4998.46 \\
+         & Test & 133.10  & 554.57  & 70.67  & 207.49 &  65.39 \\
+        \bottomrule
+    \end{tabular}
+\end{table*}
+
