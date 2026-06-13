@@ -44,6 +44,25 @@ The below table reports the runtime (in seconds) of various post-hoc GNN explain
 
 ### Runtime comparison of different explainers on various datasets (in seconds)
 
+| Explainer | Phase | Mutagenicity | NCI1 | PROTEINS | BA-3Motifs | Alkane Carbonyl |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **GNNExplainer** | Train | -- | -- | -- | -- | -- |
+| | Test | 8594.94 | 13928.71 | 3990.90 | 15575.15 | 4072.93 |
+| **PGExplainer** | Train | 740.83 | 1214.23 | 221.33 | 719.81 | 192.80 |
+| | Test | 278.11 | 443.72 | 66.20 | 203.17 | 57.66 |
+| **Gem** | Train | 533.40 | 910.67 | 152.72 | 503.87 | 133.03 |
+| | Test | 200.24 | 332.79 | 45.68 | 142.22 | 39.81 |
+| **GNN-MOExp** | Train | -- | -- | -- | -- | -- |
+| | Test | 7252.81 | 11408.50 | 3445.80 | 14279.58 | 3376.73 |
+| **CF<sup>2</sup>** | Train | -- | -- | -- | -- | -- |
+| | Test | 9595.87 | 15274.39 | 1429.38 | 17531.11 | 4528.89 |
+| **MixupE** | Train | 1513.62 | 1970.07 | 780.06 | 2518.15 | 679.49 |
+| | Test | 187.97 | 181.51 | 82.74 | 268.30 | 72.09 |
+| **RDPE** | Train | 4561.34 | 10244.37 | 3686.81 | 14499.62 | 12426.78 |
+| | Test | 160.72 | 304.99 | 82.77 | 262.78 | 457.24 |
+| **DisenGE** | Train | 9651.50 | 22816.38 | 6815.21 | 17248.27 | 4998.46 |
+| | Test | 133.10 | 554.57 | 70.67 | 207.49 | 65.39 |
+
 ### Runtime comparison of different explainers on various datasets (in seconds)
 
 | Explainer | Mutagenicity<br>(Train / Test) | NCI1<br>(Train / Test) | PROTEINS<br>(Train / Test) | BA-3Motifs<br>(Train / Test) | Alkane Carbonyl<br>(Train / Test) |
