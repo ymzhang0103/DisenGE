@@ -40,21 +40,6 @@ Specifically, DisenGE's rapid early ascent on $Fidelity+^{prob}@k$ and $Nec$ dem
 ### Running cost and hardware
 All experiments are conducted on a single NVIDIA RTX 3090 GPU (24 GB memory). 
 
-The below table reports the runtime (in seconds) of various post-hoc GNN explainers on five datasets. Non-parameterized explainers (GNNExplainer, GNN-MOExp, and CF$^2$) optimize a separate explanation for each graph at test time, leading to very high inference costs. Parameterized explainers (PGExplainer, Gem, MixupE, RDPE, and DisenGE) train a shared model that can be reused across graphs, resulting in much faster inference. While DisenGE requires more training time due to its multi-channel architecture, its inference speed matches other parameterized methods and vastly outperforms non-parameterized ones. Notably, on Mutagenicity, DisenGE takes only 133.10\,s for inference, the fastest among all methods, compared to 160.72\,s for RDPE, 187.97\,s for MixupE, and 8594.94\,s for GNNExplainer. Since training is a one-time cost while inference is performed repeatedly, this trade-off is acceptable in practice.
-
-### Runtime comparison of different explainers on various datasets (in seconds)
-
-| Explainer | Mutagenicity (Train) | Mutagenicity (Test) | NCI1 (Train) | NCI1 (Test) | PROTEINS (Train) | PROTEINS (Test) | BA-3Motifs (Train) | BA-3Motifs (Test) | Alkane Carbonyl (Train) | Alkane Carbonyl (Test) |
-| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **GNNExplainer** | -- | 8594.94 | -- | 13928.71 | -- | 3990.90 | -- | 15575.15 | -- | 4072.93 |
-| **PGExplainer** | 740.83 | 278.11 | 1214.23 | 443.72 | 221.33 | 66.20 | 719.81 | 203.17 | 192.80 | 57.66 |
-| **Gem** | 533.40 | 200.24 | 910.67 | 332.79 | 152.72 | 45.68 | 503.87 | 142.22 | 133.03 | 39.81 |
-| **GNN-MOExp** | -- | 7252.81 | -- | 11408.50 | -- | 3445.80 | -- | 14279.58 | -- | 3376.73 |
-| **CF<sup>2</sup>** | -- | 9595.87 | -- | 15274.39 | -- | 1429.38 | -- | 17531.11 | -- | 4528.89 |
-| **MixupE** | 1513.62 | 187.97 | 1970.07 | 181.51 | 780.06 | 82.74 | 2518.15 | 268.30 | 679.49 | 72.09 |
-| **RDPE** | 4561.34 | 160.72 | 10244.37 | 304.99 | 3686.81 | 82.77 | 14499.62 | 262.78 | 12426.78 | 457.24 |
-| **DisenGE** | 9651.50 | 133.10 | 22816.38 | 554.57 | 6815.21 | 70.67 | 17248.27 | 207.49 | 4998.46 | 65.39 |
-
 ### Runtime comparison of different explainers on various datasets (in seconds)
 
 | Explainer | Mutagenicity<br>(Train / Test) | NCI1<br>(Train / Test) | PROTEINS<br>(Train / Test) | BA-3Motifs<br>(Train / Test) | Alkane Carbonyl<br>(Train / Test) |
@@ -67,3 +52,6 @@ The below table reports the runtime (in seconds) of various post-hoc GNN explain
 | **MixupE** | 1513.62 / 187.97 | 1970.07 / 181.51 | 780.06 / 82.74 | 2518.15 / 268.30 | 679.49 / 72.09 |
 | **RDPE** | 4561.34 / 160.72 | 10244.37 / 304.99 | 3686.81 / 82.77 | 14499.62 / 262.78 | 12426.78 / 457.24 |
 | **DisenGE** | 9651.50 / 133.10 | 22816.38 / 554.57 | 6815.21 / 70.67 | 17248.27 / 207.49 | 4998.46 / 65.39 |
+
+The below table reports the runtime (in seconds) of various post-hoc GNN explainers on five datasets. Non-parameterized explainers (GNNExplainer, GNN-MOExp, and CF$^2$) optimize a separate explanation for each graph at test time, leading to very high inference costs. Parameterized explainers (PGExplainer, Gem, MixupE, RDPE, and DisenGE) train a shared model that can be reused across graphs, resulting in much faster inference. While DisenGE requires more training time due to its multi-channel architecture, its inference speed matches other parameterized methods and vastly outperforms non-parameterized ones. Notably, on Mutagenicity, DisenGE takes only 133.10\,s for inference, the fastest among all methods, compared to 160.72\,s for RDPE, 187.97\,s for MixupE, and 8594.94\,s for GNNExplainer. Since training is a one-time cost while inference is performed repeatedly, this trade-off is acceptable in practice.
+
