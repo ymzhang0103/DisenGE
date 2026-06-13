@@ -25,6 +25,7 @@ The project contains the following folders and files.
 We conducted additional experiments on the Alkane Carbonyl dataset. The experimental results are presented below. 
 
 The target GNN consists of three GCN layers, each with a hidden dimension of 20. Node representations are $L_2$-normalized at each layer and activated by ReLU. The graph-level representation is obtained by concatenating max-pooling and mean-pooling readouts. The test accuracy is 0.982.
+
 <img width="20%" src ="./results/Alkane_Carbonyl-f.png"/><img width="20%" src ="./results/Alkane_Carbonyl-f+.png"/><img width="20%" src ="./results/Alkane_Carbonyl-f-.png"/><img width="20%" src ="./results/nec-delEdge-Alkane_Carbonyl-f+.png"/><img width="20%" src ="./results/robust-Alkane_Carbonyl-fvaluef.png"/>
 
 As can be seen, DisenGE achieves the best $\textit{Fvalue Fidelity}@k$ ($k < 0.85$), $\textit{NEC}$, and $\textit{Robust Fidelity}$, particularly under high sparsity ($k < 0.15$). Since the primary goal of GNN explanations is identifying the minimal predictive subset[1-2], DisenGE's superiority at small $k$ proves its ability to pinpoint critical substructures efficiently. Even at larger $k$, it consistently ranks in the top two.
